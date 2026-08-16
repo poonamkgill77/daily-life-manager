@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3B82F6">
+    <meta name="description" content="Your personalized daily task manager for work, home, and self-care">
+    <title>Daily Life Manager</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%233B82F6' width='192' height='192'/><text x='50%' y='50%' font-size='120' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>DLM</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%233B82F6' width='180' height='180'/><text x='50%' y='50%' font-size='100' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>DLM</text></svg>">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #fef3c7 100%);
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+        }
+
+        .date {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .time-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .energy-selector {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .energy-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4b5563;
+        }
+
+        .energy-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            background: #f3f4f6;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .energy-btn.low {
+            background: #fed7aa;
+            border-color: #f97316;
+            color: #92400e;
+        }
+
+        .energy-btn.medium {
+            background: #bfdbfe;
+            border-color: #2563eb;
+            color: #1e40af;
+        }
+
+        .energy-btn.high {
+            background: #bbf7d0;
+            border-color: #16a34a;
+            color: #15803d;
+        }
+
+        /* Current Task Alert */
+        .current-task {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: white;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        }
+
+        .current-task h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .current-task-time {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .task-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Sections */
+        .section {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .section-header {
+            background: #f9fafb;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .section-header:active {
+            background: #f3f4f6;
+        }
+
+        .section-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .chevron {
+            display: inline-block;
+            transition: transform 0.3s;
+            width: 20px;
+            height: 20px;
+        }
+
+        .chevron.expanded {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .section-content.expanded {
+            max-height: 2000px;
+        }
+
+        .section-body {
+            padding: 1rem 1.5rem;
+        }
+
+        /* Task Items */
+        .task-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+            align-items: flex-start;
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-icon-small {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .task-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-name {
+            font-weight: 500;
+            color: #1f2937;
+            word-break: break-word;
+        }
+
+        .task-meta {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .energy-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .energy-light {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .energy-medium {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .energy-high {
+            background: #fed7aa;
+            color: #92400e;
+        }
+
+        /* Laundry Tracker */
+        .progress-container {
+            margin: 1rem 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f87171 0%, #dc2626 100%);
+            transition: width 0.3s;
+        }
+
+        .laundry-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+            color: #1e40af;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn-primary:active {
+            background: #fecaca;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-secondary:active {
+            background: #e5e7eb;
+        }
+
+        .btn-notify {
+            background: #2563eb;
+            color: white;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn-notify:active {
+            background: #1d4ed8;
+        }
+
+        /* Meal Plan */
+        .meal-day {
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .meal-day-name {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 0.5rem;
+        }
+
+        .meal-item {
+            font-size: 0.875rem;
+            color: #b45309;
+            margin: 0.25rem 0;
+        }
+
+        .meal-prep {
+            font-size: 0.75rem;
+            color: #92400e;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        .tip-box {
+            background: #fef08a;
+            border: 1px solid #eab308;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #78350f;
+        }
+
+        /* Weekly Schedule */
+        .weekly-item {
+            border-left: 4px solid #10b981;
+            padding-left: 1rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .weekly-day {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.875rem;
+        }
+
+        .weekly-room {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .weekly-time {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        /* Tips */
+        .tips-container {
+            background: linear-gradient(135deg, #f3e8ff 0%, #fce7f3 100%);
+            border: 1px solid #d8b4fe;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tips-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: #6d28d9;
+        }
+
+        .tips-list {
+            list-style: none;
+        }
+
+        .tips-list li {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            color: #5b21b6;
+        }
+
+        .tips-bullet {
+            font-weight: bold;
+            color: #7c3aed;
+            flex-shrink: 0;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.875rem;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #6b7280;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        /* Footer */
+        .footer {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+            color: #1e40af;
+            line-height: 1.5;
+        }
+
+        .footer strong {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .app-container {
+                padding: 0.75rem;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .time-display {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        /* Install Prompt */
+        .install-prompt {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .install-prompt button {
+            background: white;
+            color: #2563eb;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .install-prompt button:active {
+            background: #f3f4f6;
+        }
+
+        .close-install {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Install Prompt -->
+        <div id="installPrompt" class="install-prompt" style="display: none;">
+            <div>
+                <strong>📱 Add to Home Screen</strong>
+                <p style="font-size: 0.875rem; opacity: 0.9;">Get instant reminders right on your home screen</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button id="installBtn">Install</button>
+                <button class="close-install" id="closeInstall">×</button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+            <h1>Your Day</h1>
+            <p class="date" id="dateDisplay"></p>
+            <div class="time-display" id="timeDisplay">--:--</div>
+            
+            <div class="energy-selector">
+                <span class="energy-label">Energy Level:</span>
+                <button class="energy-btn medium" id="energyLow" onclick="setEnergy('low')">Low</button>
+                <button class="energy-btn medium active" id="energyMedium" onclick="setEnergy('medium')">Medium</button>
+                <button class="energy-btn medium" id="energyHigh" onclick="setEnergy('high')">High</button>
+            </div>
+        </div>
+
+        <!-- Current Task -->
+        <div id="currentTaskContainer" style="display: none;">
+            <div class="current-task">
+                <div class="task-icon" id="currentTaskIcon">🌅</div>
+                <h2 id="currentTaskName">Task Name</h2>
+                <p class="current-task-time" id="currentTaskTime">Until 8:00 AM</p>
+            </div>
+        </div>
+
+        <!-- Next 3 Hours -->
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('upcoming')">
+                <div class="section-header-left">
+                    <span>⏰</span>
+                    <span>Next 3 Hours</span>
+                </div>
+                <span class="chevron" id="upcomingChevron">▼</span>
+            </div>
+            <div class="section-content expanded" id="upcomingContent">
+                <div class="section-body" id="upcomingTasks"></div>
+            </div>
+        </div>
+
+        <!-- Laundry Tracker -->
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('laundry')">
+                <div class="section-header-left">
+                    <span>👕</span>
+                    <span>Laundry Progress</span>
+                </div>
+                <span class="chevron" id="laundryChevron">▼</span>
+            </div>
+            <div class="section-content expanded" id="laundryContent">
+                <div class="section-body">
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Baskets completed</span>
+                            <span id="laundryCount">0/20</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="laundryFill" style="width: 0%"></div>
+                        </div>
+                        <p style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                            <span id="laundryRemaining">20</span> baskets remaining
+                        </p>
+                    </div>
+
+                    <div class="laundry-info">
+                        <p>Daily goal: Fold 1 basket at 7:30 PM</p>
+                        <p style="margin-top: 0.5rem;">At this pace: Complete in <span id="laundryDays">20</span> days</p>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="addLaundry()">✓ Basket Done</button>
+                        <button class="btn btn-secondary" onclick="removeLaundry()">Undo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meal Planning -->
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('meals')">
+                <div class="section-header-left">
+                    <span>🍽️</span>
+                    <span>This Week's Meal Plan</span>
+                </div>
+                <span class="chevron" id="mealsChevron">▼</span>
+            </div>
+            <div class="section-content" id="mealsContent">
+                <div class="section-body" id="mealsList"></div>
+            </div>
+        </div>
+
+        <!-- Weekly Schedule -->
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('weekly')">
+                <div class="section-header-left">
+                    <span>🌿</span>
+                    <span>Weekend Deep Clean</span>
+                </div>
+                <span class="chevron" id="weeklyChevron">▼</span>
+            </div>
+            <div class="section-content" id="weeklyContent">
+                <div class="section-body" id="weeklyList"></div>
+            </div>
+        </div>
+
+        <!-- Energy Tips -->
+        <div class="tips-container">
+            <div class="tips-title">⚡ Energy Tips</div>
+            <ul class="tips-list">
+                <li><span class="tips-bullet">•</span> <strong>Daily cleaning (Mon-Fri):</strong> Kitchen (12:15), Dining (3:15), Living 1 (8pm), Living 2 (8:25), Stairs (8:50), Washroom (9:15)</li>
+                <li><span class="tips-bullet">•</span> <strong>Weekends:</strong> Basement areas + deep clean washroom</li>
+                <li><span class="tips-bullet">•</span> One laundry basket per day prevents overwhelm</li>
+                <li><span class="tips-bullet">•</span> 20-min tasks = manageable with your conditions</li>
+                <li><span class="tips-bullet">•</span> Rest is productive—honor your body</li>
+            </ul>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('stats')">
+                <div class="section-header-left">
+                    <span>📊</span>
+                    <span>Today's Summary</span>
+                </div>
+                <span class="chevron" id="statsChevron">▼</span>
+            </div>
+            <div class="section-content" id="statsContent">
+                <div class="section-body">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Work hours</span>
+                            <span class="stat-value">7 hrs</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Cooking time</span>
+                            <span class="stat-value">60 min</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Daily cleaning</span>
+                            <span class="stat-value">~2 hrs</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Breaks</span>
+                            <span class="stat-value">2 hrs</span>
+                        </div>
+                        <div class="stat-item" style="border: none; padding-top: 0.75rem; margin-top: 0.75rem; border-top: 1px solid #e5e7eb;">
+                            <span class="stat-label">Flexible time</span>
+                            <span class="stat-value">~30 min</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-notify" onclick="requestNotifications()">🔔 Enable Reminders</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <strong>💙 Remember:</strong> You're managing a full-time job, part-time business, and home. This schedule respects your energy and autoimmune conditions. Every task completed is a win. Flexibility is built in.
+        </div>
+    </div>
+
+    <!-- Service Worker Registration -->
+    <script>
+        // Register service worker for offline support and notifications
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.log('Service worker registration failed:', err);
+            });
+        }
+
+        // App Data
+        const tasks = [
+            { time: '7:30', duration: 30, task: 'Morning routine & breakfast prep', category: 'personal', energy: 'light', icon: '🌅' },
+            { time: '8:00', duration: 240, task: 'Work block 1 (Focus time)', category: 'work', energy: 'high', icon: '💼' },
+            { time: '11:30', duration: 5, task: '⏰ LUNCH PREP: Start cooking now (30 min)', category: 'cooking', energy: 'medium', icon: '🔔' },
+            { time: '11:35', duration: 30, task: 'Cook lunch for kids', category: 'cooking', energy: 'medium', icon: '🍳' },
+            { time: '12:00', duration: 60, task: 'Lunch break - Eat & kitchen clean', category: 'break', energy: 'light', icon: '☕' },
+            { time: '12:15', duration: 20, task: 'Daily clean: Kitchen', category: 'cleaning', energy: 'medium', icon: '✨' },
+            { time: '12:45', duration: 12, task: 'Water plants (daily)', category: 'plants', energy: 'light', icon: '🌿' },
+            { time: '1:00', duration: 120, task: 'Work block 2 (Focus time)', category: 'work', energy: 'high', icon: '💼' },
+            { time: '3:00', duration: 60, task: 'Afternoon break - Rest & movement', category: 'break', energy: 'light', icon: '💪' },
+            { time: '3:15', duration: 20, task: 'Daily clean: Dining area', category: 'cleaning', energy: 'medium', icon: '✨' },
+            { time: '4:00', duration: 60, task: 'Work block 3 - Final focus', category: 'work', energy: 'medium', icon: '💼' },
+            { time: '5:15', duration: 5, task: '⏰ DINNER PREP: Start cooking now (30 min)', category: 'cooking', energy: 'medium', icon: '🔔' },
+            { time: '5:20', duration: 30, task: 'Cook dinner (serving 6-8pm)', category: 'cooking', energy: 'medium', icon: '🍳' },
+            { time: '5:00', duration: 0, task: 'Work day ends', category: 'milestone', energy: 'light', icon: '✋' },
+            { time: '6:00', duration: 90, task: 'Dinner with family', category: 'family', energy: 'light', icon: '🍽️' },
+            { time: '7:30', duration: 25, task: 'Laundry: Fold 1 basket', category: 'laundry', energy: 'medium', icon: '👕' },
+            { time: '8:00', duration: 20, task: 'Daily clean: Living Room 1', category: 'cleaning', energy: 'medium', icon: '✨' },
+            { time: '8:25', duration: 20, task: 'Daily clean: Living Room 2', category: 'cleaning', energy: 'medium', icon: '✨' },
+            { time: '8:50', duration: 20, task: 'Daily clean: Stairs', category: 'cleaning', energy: 'medium', icon: '✨' },
+            { time: '9:15', duration: 20, task: 'Daily clean: Washroom', category: 'cleaning', energy: 'medium', icon: '✨' },
+            { time: '9:40', duration: 60, task: 'Evening routine & self-care', category: 'personal', energy: 'light', icon: '🌙' },
+        ];
+
+        const weeklyTasks = [
+            { day: 'Saturday AM', room: 'Basement living area - Deep clean', time: '10:00 AM', duration: 30 },
+            { day: 'Saturday PM', room: 'Basement kitchen - Deep clean', time: '2:00 PM', duration: 30 },
+            { day: 'Sunday AM', room: 'Weekly plant care', time: '10:00 AM', duration: 15 },
+            { day: 'Sunday PM', room: 'Meal prep + deep washroom clean', time: '2:00 PM', duration: 45 },
+        ];
+
+        const meals = [
+            { day: 'Mon', lunch: 'Pasta', dinner: 'Chicken & rice', prep: 'Chop veggies Sun' },
+            { day: 'Tue', lunch: 'Leftovers', dinner: 'Fish & veggies', prep: 'Marinate Tue AM' },
+            { day: 'Wed', lunch: 'Sandwich', dinner: 'Stir-fry', prep: 'Have veggies ready' },
+            { day: 'Thu', lunch: 'Soup', dinner: 'Pasta', prep: 'Cook double Sun' },
+            { day: 'Fri', lunch: 'Leftovers', dinner: 'Takeout/Simple', prep: 'Tired day' },
+            { day: 'Sat', lunch: 'Light', dinner: 'BBQ/Casual', prep: 'Family help' },
+            { day: 'Sun', lunch: 'Brunch', dinner: 'Prep week', prep: 'Batch cook' },
+        ];
+
+        let laundryProgress = parseInt(localStorage.getItem('laundryProgress')) || 0;
+        let currentEnergy = localStorage.getItem('energy') || 'medium';
+        let deferredPrompt = null;
+
+        // Initialize
+        function init() {
+            updateTime();
+            renderUpcomingTasks();
+            renderMealPlan();
+            renderWeeklySchedule();
+            updateLaundry();
+            setInterval(updateTime, 60000);
+            setInterval(renderUpcomingTasks, 60000);
+            updateDateDisplay();
+        }
+
+        function updateDateDisplay() {
+            const options = { weekday: 'long', month: 'short', day: 'numeric' };
+            document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('en-US', options);
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
+
+            updateCurrentTask();
+        }
+
+        function getTimeInMinutes(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function getCurrentTimeInMinutes() {
+            const now = new Date();
+            return now.getHours() * 60 + now.getMinutes();
+        }
+
+        function updateCurrentTask() {
+            const now = getCurrentTimeInMinutes();
+            const current = tasks.find(t => {
+                const start = getTimeInMinutes(t.time);
+                const end = start + t.duration;
+                return now >= start && now < end;
+            });
+
+            const container = document.getElementById('currentTaskContainer');
+            if (current) {
+                document.getElementById('currentTaskIcon').textContent = current.icon;
+                document.getElementById('currentTaskName').textContent = current.task;
+                const endTime = new Date(new Date().getTime() + (current.duration * 60000));
+                const endHours = String(endTime.getHours()).padStart(2, '0');
+                const endMinutes = String(endTime.getMinutes()).padStart(2, '0');
+                document.getElementById('currentTaskTime').textContent = `Until ${endHours}:${endMinutes}`;
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function renderUpcomingTasks() {
+            const now = getCurrentTimeInMinutes();
+            const upcoming = tasks.filter(t => {
+                const start = getTimeInMinutes(t.time);
+                return start > now && start - now <= 180;
+            }).sort((a, b) => getTimeInMinutes(a.time) - getTimeInMinutes(b.time)).slice(0, 4);
+
+            const container = document.getElementById('upcomingTasks');
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div class="empty-state">No tasks in next 3 hours</div>';
+                return;
+            }
+
+            container.innerHTML = upcoming.map(task => `
+                <div class="task-item">
+                    <div class="task-icon-small">${task.icon}</div>
+                    <div class="task-content">
+                        <div class="task-name">${task.task}</div>
+                        <div class="task-meta">
+                            ${task.time} • ${task.duration} min 
+                            <span class="energy-badge energy-${task.energy}">${task.energy}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderMealPlan() {
+            const html = meals.map(m => `
+                <div class="meal-day">
+                    <div class="meal-day-name">${m.day}</div>
+                    <div class="meal-item">🍴 Lunch: ${m.lunch}</div>
+                    <div class="meal-item">🍽️ Dinner: ${m.dinner}</div>
+                    <div class="meal-prep">💡 ${m.prep}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('mealsList').innerHTML = html + `
+                <div class="tip-box">
+                    <strong>Batch prep tip:</strong> Chop veggies Sunday for 3 days, saves 10-15 min daily cooking.
+                </div>
+            `;
+        }
+
+        function renderWeeklySchedule() {
+            const html = weeklyTasks.map(t => `
+                <div class="weekly-item">
+                    <div class="weekly-day">${t.day}</div>
+                    <div class="weekly-room">${t.room}</div>
+                    <div class="weekly-time">${t.time} • ${t.duration} min</div>
+                </div>
+            `).join('');
+
+            document.getElementById('weeklyList').innerHTML = html;
+        }
+
+        function addLaundry() {
+            if (laundryProgress < 20) {
+                laundryProgress++;
+                localStorage.setItem('laundryProgress', laundryProgress);
+                updateLaundry();
+                sendNotification('Great job! 🎉', `You\'ve completed ${laundryProgress} baskets! ${20 - laundryProgress} to go!`);
+            }
+        }
+
+        function removeLaundry() {
+            if (laundryProgress > 0) {
+                laundryProgress--;
+                localStorage.setItem('laundryProgress', laundryProgress);
+                updateLaundry();
+            }
+        }
+
+        function updateLaundry() {
+            const remaining = 20 - laundryProgress;
+            document.getElementById('laundryCount').textContent = `${laundryProgress}/20`;
+            document.getElementById('laundryRemaining').textContent = remaining;
+            document.getElementById('laundryDays').textContent = remaining;
+            document.getElementById('laundryFill').style.width = `${(laundryProgress / 20) * 100}%`;
+        }
+
+        function setEnergy(level) {
+            currentEnergy = level;
+            localStorage.setItem('energy', level);
+            document.querySelectorAll('.energy-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`energy${level.charAt(0).toUpperCase() + level.slice(1)}`).classList.add('active');
+        }
+
+        function toggleSection(id) {
+            const content = document.getElementById(id + 'Content');
+            const chevron = document.getElementById(id + 'Chevron');
+            content.classList.toggle('expanded');
+            chevron.classList.toggle('expanded');
+        }
+
+        // Notifications
+        function requestNotifications() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    sendNotification('Reminders Enabled! 🔔', 'You\'ll get alerts for cooking and cleaning times.');
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            sendNotification('Reminders Enabled! 🔔', 'You\'ll get alerts for cooking and cleaning times.');
+                        }
+                    });
+                }
+            } else {
+                alert('Your browser doesn\'t support notifications');
+            }
+        }
+
+        function sendNotification(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: body,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect fill="%233B82F6" width="192" height="192"/><text x="50%" y="50%" font-size="120" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">DLM</text></svg>',
+                    tag: 'dlm-notification',
+                    requireInteraction: true
+                });
+            }
+        }
+
+        // Install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').style.display = 'flex';
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const result = await deferredPrompt.userChoice;
+                if (result.outcome === 'accepted') {
+                    document.getElementById('installPrompt').style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        document.getElementById('closeInstall').addEventListener('click', () => {
+            document.getElementById('installPrompt').style.display = 'none';
+        });
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
