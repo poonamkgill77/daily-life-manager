@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#3B82F6">
     <meta name="description" content="Daily Life Manager - Smart task scheduler">
     <title>Daily Life Manager</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/daily-life-manager/manifest.json">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f0f9ff 0%, #fef3c7 100%); color: #1f2937; }
@@ -117,7 +117,7 @@
     </div>
 
     <script>
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(console.log);
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/daily-life-manager/sw.js').catch(console.log);
 
         const tasks = [
             {time:'7:30',duration:30,task:'Morning routine & breakfast prep',energy:'light',icon:'🌅'},
